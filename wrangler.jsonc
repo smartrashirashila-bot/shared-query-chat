@@ -3,6 +3,7 @@
   "name": "shared-query-chat",
   "main": "worker.js",
   "compatibility_date": "2026-09-17",
+
   "durable_objects": {
     "bindings": [
       {
@@ -11,13 +12,8 @@
       }
     ]
   },
+
   "ai": {
     "binding": "AI"
-  },
-  "exports": {
-    "ChatRoom": {
-      "type": "durable-object",
-      "storage": "sqlite"
-    }
   }
 }
