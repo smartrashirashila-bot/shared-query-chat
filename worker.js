@@ -5,7 +5,7 @@ const HTML = `<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Shared Spreadsheet Chat</title>
+<title>Shared AI Spreadsheet</title>
 
 <style>
 *{box-sizing:border-box}
@@ -34,7 +34,7 @@ header b{font-size:16px}
 
 main{
  display:grid;
- grid-template-columns:minmax(0,1fr) 360px;
+ grid-template-columns:minmax(0,1fr) 380px;
  height:calc(100vh - 54px);
  transition:grid-template-columns .2s ease
 }
@@ -81,16 +81,9 @@ main{
  min-width:120px
 }
 
-.hint{
- color:#777;
- font-size:12px;
- margin-left:3px
-}
-
 .gridwrap{
  flex:1;
- overflow:auto;
- background:#fff
+ overflow:auto
 }
 
 table{
@@ -117,13 +110,7 @@ thead th{
  top:0;
  z-index:3;
  background:#eef1f4;
- font-weight:bold;
  text-align:center
-}
-
-thead th:first-child{
- left:0;
- z-index:5
 }
 
 .rownum{
@@ -136,10 +123,9 @@ thead th:first-child{
  width:44px
 }
 
-td[contenteditable="true"]{
- background:#fff;
- outline:none
-}
+.c-query{width:34%}
+.c-answer{width:48%}
+.c-user{width:120px}
 
 .cell-edit:focus{
  box-shadow:inset 0 0 0 2px #4d90fe;
@@ -147,82 +133,100 @@ td[contenteditable="true"]{
  overflow:visible
 }
 
-.c-query{width:36%}
-.c-answer{width:44%}
-.c-user{width:130px}
+/* AI PANEL */
 
-/* MESSENGER */
-
-.chat{
+.ai{
  display:flex;
  flex-direction:column;
  border-left:1px solid #cfd4da;
  background:#fafafa;
- min-width:0;
- transition:all .2s ease
+ min-width:0
 }
 
-.chathead{
- height:48px;
- padding:0 10px;
+.aihead{
+ padding:12px;
  border-bottom:1px solid #d8dce1;
- display:flex;
- align-items:center;
- gap:8px;
  background:#fff
 }
 
-.chathead b{
- flex:1
+.aihead b{
+ display:block;
+ font-size:16px
 }
 
-.chathead button{
- border:1px solid #c9ced6;
+.aihead span{
+ font-size:11px;
+ color:#777
+}
+
+.min{
+ float:right;
+ border:1px solid #ccc;
  background:#fff;
  border-radius:4px;
- height:30px;
+ padding:5px 8px;
  cursor:pointer
 }
 
-#msgs{
+.answer{
  flex:1;
  overflow:auto;
- padding:10px
+ padding:12px
 }
 
-.msg{
+.card{
  background:#fff;
  border:1px solid #ddd;
  border-radius:8px;
- padding:8px;
- margin:7px 0;
+ padding:10px;
+ margin-bottom:10px;
  overflow-wrap:anywhere
 }
 
 .meta{
  font-size:11px;
  color:#777;
- margin-bottom:3px
+ margin-bottom:5px
 }
 
-.send{
- display:flex;
- gap:7px;
- padding:9px;
+.sources{
+ margin-top:12px;
+ border-top:1px solid #eee;
+ padding-top:8px
+}
+
+.sources a{
+ display:block;
+ margin-top:7px;
+ color:#1769aa;
+ text-decoration:none
+}
+
+.ask{
+ padding:10px;
  border-top:1px solid #ddd;
  background:#fff
 }
 
-.send input{
- flex:1;
- min-width:0;
+.ask textarea{
+ width:100%;
+ height:85px;
+ resize:none;
  padding:9px;
  border:1px solid #ccc;
- border-radius:6px
+ border-radius:6px;
+ font:inherit
 }
 
-.send button{
- padding:9px 13px;
+.askrow{
+ display:flex;
+ gap:7px;
+ margin-top:7px
+}
+
+.ask button{
+ flex:1;
+ padding:10px 14px;
  border:0;
  border-radius:6px;
  background:#222;
@@ -230,7 +234,11 @@ td[contenteditable="true"]{
  cursor:pointer
 }
 
-/* MINIMIZED CHAT */
+.ask button:disabled{
+ opacity:.5
+}
+
+/* MINIMIZE */
 
 #restore{
  display:none;
@@ -238,7 +246,7 @@ td[contenteditable="true"]{
  right:14px;
  bottom:14px;
  z-index:20;
- border:1px solid #c9ced6;
+ border:1px solid #ccc;
  border-radius:20px;
  background:#fff;
  padding:10px 15px;
@@ -247,15 +255,15 @@ td[contenteditable="true"]{
  font-weight:bold
 }
 
-body.chat-min main{
+body.min main{
  grid-template-columns:1fr 0
 }
 
-.chat-minimized{
- display:none!important
+body.min .ai{
+ display:none
 }
 
-body.chat-min #restore{
+body.min #restore{
  display:block
 }
 
@@ -277,7 +285,7 @@ body.chat-min #restore{
   height:calc(100vh - 54px)
  }
 
- .chat{
+ .ai{
   position:fixed;
   inset:auto 0 0 0;
   height:48vh;
@@ -285,14 +293,9 @@ body.chat-min #restore{
   border-top:1px solid #ddd
  }
 
- .chat-minimized{
-  display:none!important
- }
-
- body.chat-min .sheet{
+ body.min .sheet{
   height:calc(100vh - 54px)
  }
-
 }
 </style>
 </head>
@@ -300,7 +303,7 @@ body.chat-min #restore{
 <body>
 
 <header>
-<b>📊 Shared Spreadsheet</b>
+<b>📊 Shared AI Spreadsheet</b>
 <span class="room" id="room"></span>
 <span class="status" id="status">Connecting…</span>
 </header>
@@ -317,14 +320,10 @@ body.chat-min #restore{
 
 <input
  id="q"
- placeholder="Enter query for the shared spreadsheet…"
+ placeholder="Enter query…"
 >
 
 <button id="qb">Run Query</button>
-
-<span class="hint">
-Double-click cells to edit
-</span>
 
 </div>
 
@@ -335,9 +334,9 @@ Double-click cells to edit
 <thead>
 
 <tr>
-<th class="corner"></th>
+<th></th>
 <th class="c-query">Query</th>
-<th class="c-answer">Answer / Notes</th>
+<th class="c-answer">AI Answer</th>
 <th class="c-user">User</th>
 </tr>
 
@@ -351,27 +350,55 @@ Double-click cells to edit
 
 </section>
 
-<section class="chat" id="chat">
 
-<div class="chathead">
+<section class="ai" id="ai">
 
-<b>💬 Shared Messenger</b>
+<div class="aihead">
 
-<button id="min">− Minimize</button>
+<button class="min" id="min">
+− Minimize
+</button>
+
+<b>🤖 AI Query</b>
+
+<span>
+Ask anything • AI + Live Web Search
+</span>
 
 </div>
 
-<div id="msgs"></div>
 
-<form class="send" id="form">
+<div class="answer" id="answer">
 
-<input
+<div class="card">
+
+<div class="meta">
+Ready
+</div>
+
+Ask anything using the box below.
+
+The system will search the web and use AI to prepare the answer.
+
+</div>
+
+</div>
+
+
+<form class="ask" id="form">
+
+<textarea
  id="m"
- placeholder="Type a message…"
- autocomplete="off"
->
+ placeholder="Ask anything..."
+></textarea>
 
-<button>Send</button>
+<div class="askrow">
+
+<button id="ask" type="submit">
+🔎 Ask AI & Search
+</button>
+
+</div>
 
 </form>
 
@@ -379,9 +406,11 @@ Double-click cells to edit
 
 </main>
 
+
 <button id="restore">
-💬 Messenger
+🤖 AI Query
 </button>
+
 
 <script>
 
@@ -389,9 +418,12 @@ const p=new URLSearchParams(location.search);
 
 const room=p.get("room")||"demo";
 
-document.querySelector("#room").textContent="Room: "+room;
+document.querySelector("#room").textContent=
+"Room: "+room;
+
 
 const name=(prompt("Your name?")||"Guest").slice(0,40);
+
 
 const ws=new WebSocket(
  (location.protocol==="https:"?"wss://":"ws://")
@@ -402,88 +434,50 @@ const ws=new WebSocket(
  +encodeURIComponent(name)
 );
 
-const msgs=document.querySelector("#msgs");
 
 const rows=document.querySelector("#rows");
 
+const answer=document.querySelector("#answer");
+
 const status=document.querySelector("#status");
 
-let rowCount=0;
+const askButton=document.querySelector("#ask");
+
+let rowNumber=0;
 
 
-/* CHAT MESSAGE */
-
-function addMsg(u,t,time){
-
- let d=document.createElement("div");
-
- d.className="msg";
-
- let x=document.createElement("div");
-
- x.className="meta";
-
- x.textContent=
- u+
- (time?
- " · "+
- new Date(time).toLocaleTimeString(
- [],
- {hour:"2-digit",minute:"2-digit"}
- )
- :"");
-
- let b=document.createElement("div");
-
- b.textContent=t;
-
- d.append(x,b);
-
- msgs.append(d);
-
- msgs.scrollTop=msgs.scrollHeight;
-
-}
-
-
-/* SPREADSHEET ROW */
+/* ADD SPREADSHEET ROW */
 
 function addRow(q,a,u){
 
- rowCount++;
+ rowNumber++;
 
- let tr=document.createElement("tr");
+ const tr=document.createElement("tr");
 
- let rn=document.createElement("td");
+ const rn=document.createElement("td");
 
  rn.className="rownum";
 
- rn.textContent=rowCount;
+ rn.textContent=rowNumber;
 
  tr.append(rn);
+
 
  [
   [q,"query"],
   [a,"answer"],
   [u,"user"]
- ].forEach(([v,type])=>{
+ ].forEach(([value,type])=>{
 
-  let td=document.createElement("td");
+  const td=document.createElement("td");
 
-  td.textContent=v||"";
+  td.textContent=value||"";
 
   if(type!=="user"){
 
-   td.className="cell-edit";
-
    td.contentEditable="true";
 
-   td.title="Double-click to edit";
-
-   td.addEventListener(
-    "dblclick",
-    ()=>td.focus()
-   );
+   td.className="cell-edit";
 
   }
 
@@ -491,23 +485,104 @@ function addRow(q,a,u){
 
  });
 
+
  rows.append(tr);
 
 }
 
 
-/* CLEAR ROWS */
+/* SHOW AI RESULT */
 
-function clearRows(){
+function showAnswer(d){
 
- rows.innerHTML="";
+ answer.innerHTML="";
 
- rowCount=0;
+
+ const card=document.createElement("div");
+
+ card.className="card";
+
+
+ const meta=document.createElement("div");
+
+ meta.className="meta";
+
+ meta.textContent=
+ d.user+
+ " · "+
+ new Date(
+  d.time||Date.now()
+ ).toLocaleTimeString(
+  [],
+  {
+   hour:"2-digit",
+   minute:"2-digit"
+  }
+ );
+
+
+ const question=document.createElement("b");
+
+ question.textContent=d.query;
+
+
+ const text=document.createElement("p");
+
+ text.textContent=d.answer;
+
+
+ card.append(
+  meta,
+  question,
+  text
+ );
+
+
+ if(d.sources && d.sources.length){
+
+  const sourceBox=document.createElement("div");
+
+  sourceBox.className="sources";
+
+
+  const title=document.createElement("b");
+
+  title.textContent="Sources";
+
+  sourceBox.append(title);
+
+
+  d.sources.forEach(source=>{
+
+   const link=document.createElement("a");
+
+   link.href=source.url;
+
+   link.target="_blank";
+
+   link.rel="noopener noreferrer";
+
+   link.textContent=
+    "🔗 "+source.title;
+
+   sourceBox.append(link);
+
+  });
+
+
+  card.append(sourceBox);
+
+ }
+
+
+ answer.append(card);
+
+ answer.scrollTop=answer.scrollHeight;
 
 }
 
 
-/* WEBSOCKET */
+/* CONNECTION */
 
 ws.onopen=()=>{
 
@@ -532,27 +607,32 @@ ws.onerror=()=>{
 
 ws.onmessage=e=>{
 
- let d=JSON.parse(e.data);
+ const d=JSON.parse(e.data);
+
 
  if(d.type==="history"){
 
-  clearRows();
+  rows.innerHTML="";
 
-  d.messages.forEach(x=>
+  rowNumber=0;
 
-   x.type==="chat"
-   ?addMsg(x.user,x.message,x.created_at)
-   :addRow(x.query,x.answer,x.user)
 
-  );
+  d.messages.forEach(x=>{
+
+   if(x.type==="query"){
+
+    addRow(
+     x.query,
+     x.answer,
+     x.user
+    );
+
+   }
+
+  });
 
  }
 
- if(d.type==="chat"){
-
-  addMsg(d.user,d.text,d.time);
-
- }
 
  if(d.type==="query"){
 
@@ -562,69 +642,108 @@ ws.onmessage=e=>{
    d.user
   );
 
+  showAnswer(d);
+
+  askButton.disabled=false;
+
+ }
+
+
+ if(d.type==="error"){
+
+  answer.innerHTML="";
+
+  const error=document.createElement("div");
+
+  error.className="card";
+
+  error.textContent=
+   "Error: "+d.message;
+
+  answer.append(error);
+
+  askButton.disabled=false;
+
  }
 
 };
 
 
-/* SEND CHAT */
+/* ASK AI */
+
+function askQuery(query){
+
+ if(!query)return;
+
+ if(ws.readyState!==1){
+
+  alert("Not connected. Please wait.");
+
+  return;
+
+ }
+
+
+ askButton.disabled=true;
+
+
+ answer.innerHTML=
+ '<div class="card">🔎 Searching the web and asking AI…</div>';
+
+
+ document.querySelector("#q").value=query;
+
+ document.querySelector("#m").value="";
+
+
+ ws.send(
+  JSON.stringify({
+   type:"query",
+   user:name,
+   query:query
+  })
+ );
+
+}
+
+
+/* AI QUERY BOX */
 
 document.querySelector("#form").onsubmit=e=>{
 
  e.preventDefault();
 
- let i=document.querySelector("#m");
+ const q=document
+  .querySelector("#m")
+  .value
+  .trim();
 
- let t=i.value.trim();
-
- if(t && ws.readyState===1){
-
-  ws.send(JSON.stringify({
-   type:"chat",
-   user:name,
-   text:t
-  }));
-
- }
-
- i.value="";
-
- i.focus();
+ askQuery(q);
 
 };
 
 
-/* QUERY */
+/* SPREADSHEET QUERY */
 
 document.querySelector("#qb").onclick=()=>{
 
- let i=document.querySelector("#q");
+ const q=document
+  .querySelector("#q")
+  .value
+  .trim();
 
- let q=i.value.trim();
-
- if(q && ws.readyState===1){
-
-  ws.send(JSON.stringify({
-   type:"query",
-   user:name,
-   query:q,
-   answer:"Query received. AI/search integration can be connected here."
-  }));
-
- }
-
- i.value="";
-
- i.focus();
+ askQuery(q);
 
 };
 
 
-/* ENTER TO QUERY */
+/* ENTER */
 
 document.querySelector("#q").onkeydown=e=>{
 
  if(e.key==="Enter"){
+
+  e.preventDefault();
 
   document.querySelector("#qb").click();
 
@@ -646,9 +765,11 @@ document.querySelector("#add").onclick=()=>{
 
 document.querySelector("#clear").onclick=()=>{
 
- if(confirm("Clear the visible spreadsheet rows?")){
+ if(confirm("Clear visible rows?")){
 
-  clearRows();
+  rows.innerHTML="";
+
+  rowNumber=0;
 
  }
 
@@ -659,10 +780,7 @@ document.querySelector("#clear").onclick=()=>{
 
 document.querySelector("#min").onclick=()=>{
 
- document.body.classList.add("chat-min");
-
- document.querySelector("#chat")
- .classList.add("chat-minimized");
+ document.body.classList.add("min");
 
 };
 
@@ -671,10 +789,7 @@ document.querySelector("#min").onclick=()=>{
 
 document.querySelector("#restore").onclick=()=>{
 
- document.body.classList.remove("chat-min");
-
- document.querySelector("#chat")
- .classList.remove("chat-minimized");
+ document.body.classList.remove("min");
 
 };
 
@@ -682,6 +797,7 @@ document.querySelector("#restore").onclick=()=>{
 
 </body>
 </html>`;
+
 
 export class ChatRoom extends DurableObject {
 
@@ -691,17 +807,30 @@ export class ChatRoom extends DurableObject {
 
   this.ctx=ctx;
 
+  this.env=env;
+
+
   this.ctx.storage.sql.exec(
    "CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY AUTOINCREMENT,type TEXT,user TEXT,message TEXT,query TEXT,answer TEXT,created_at TEXT)"
   );
 
  }
 
+
  async fetch(request){
 
-  if(request.headers.get("Upgrade")!=="websocket")
+  if(
+   request.headers.get("Upgrade")
+   !==
+   "websocket"
+  ){
 
-   return new Response("Chat room is running.");
+   return new Response(
+    "Chat room is running."
+   );
+
+  }
+
 
   const pair=new WebSocketPair();
 
@@ -709,16 +838,22 @@ export class ChatRoom extends DurableObject {
 
   this.ctx.acceptWebSocket(server);
 
-  const h=this.ctx.storage.sql.exec(
-   "SELECT type,user,message,query,answer,created_at FROM messages ORDER BY id DESC LIMIT 100"
-  ).toArray().reverse();
+
+  const history=
+   this.ctx.storage.sql.exec(
+    "SELECT type,user,message,query,answer,created_at FROM messages ORDER BY id DESC LIMIT 100"
+   )
+   .toArray()
+   .reverse();
+
 
   server.send(
    JSON.stringify({
     type:"history",
-    messages:h
+    messages:history
    })
   );
+
 
   return new Response(null,{
    status:101,
@@ -727,105 +862,290 @@ export class ChatRoom extends DurableObject {
 
  }
 
- webSocketMessage(ws,raw){
+
+ async webSocketMessage(ws,raw){
 
   try{
 
    const d=JSON.parse(raw);
 
-   const u=String(d.user||"Guest").slice(0,40);
+   const user=
+    String(
+     d.user||"Guest"
+    ).slice(0,40);
 
-   const t=new Date().toISOString();
+   const query=
+    String(
+     d.query||""
+    )
+    .trim()
+    .slice(0,2000);
 
-   let out;
 
-   if(d.type==="chat"){
+   if(
+    d.type!=="query"
+    ||
+    !query
+   ){
 
-    const text=String(d.text||"")
-     .trim()
-     .slice(0,2000);
-
-    if(!text)return;
-
-    this.ctx.storage.sql.exec(
-     "INSERT INTO messages(type,user,message,created_at) VALUES(?,?,?,?)",
-     "chat",
-     u,
-     text,
-     t
-    );
-
-    out={
-     type:"chat",
-     user:u,
-     text:text,
-     time:t
-    };
+    return;
 
    }
 
-   else if(d.type==="query"){
 
-    const q=String(d.query||"")
-     .trim()
-     .slice(0,500);
+   let results=[];
 
-    const a=String(d.answer||"")
-     .slice(0,5000);
+   let aiAnswer="";
 
-    if(!q)return;
 
-    this.ctx.storage.sql.exec(
-     "INSERT INTO messages(type,user,query,answer,created_at) VALUES(?,?,?,?,?)",
-     "query",
-     u,
-     q,
-     a,
-     t
-    );
+   /* WEB SEARCH */
 
-    out={
-     type:"query",
-     user:u,
-     query:q,
-     answer:a,
-     time:t
-    };
+   try{
+
+    if(!this.env.TAVILY_API_KEY){
+
+     throw new Error(
+      "TAVILY_API_KEY is not configured in Cloudflare."
+     );
+
+    }
+
+
+    const searchResponse=
+     await fetch(
+      "https://api.tavily.com/search",
+      {
+       method:"POST",
+
+       headers:{
+        "content-type":
+        "application/json"
+       },
+
+       body:JSON.stringify({
+
+        api_key:
+        this.env.TAVILY_API_KEY,
+
+        query:query,
+
+        search_depth:"advanced",
+
+        max_results:5,
+
+        include_answer:false
+
+       })
+
+      }
+     );
+
+
+    if(!searchResponse.ok){
+
+     throw new Error(
+      "Web search failed: "+
+      searchResponse.status
+     );
+
+    }
+
+
+    const searchData=
+     await searchResponse.json();
+
+
+    results=
+     (searchData.results||[])
+     .map(x=>({
+
+      title:x.title||"Web result",
+
+      url:x.url||"",
+
+      content:x.content||""
+
+     }));
+
+
+    /* CREATE CONTEXT FOR AI */
+
+    const context=
+     results
+     .map(
+      (x,i)=>
+       `[${i+1}] ${x.title}
+URL: ${x.url}
+${x.content}`
+     )
+     .join("\n\n");
+
+
+    /* AI */
+
+    const aiResponse=
+     await this.env.AI.run(
+      "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+      {
+
+       messages:[
+
+        {
+         role:"system",
+
+         content:
+         "You are a helpful AI web-search assistant. Answer the user's question using the supplied web search results. Be accurate and concise. Do not invent facts or sources. If the search results do not contain enough information, say so."
+        },
+
+        {
+         role:"user",
+
+         content:
+         "Question:\n"+
+         query+
+         "\n\nWeb search results:\n"+
+         context
+        }
+
+       ]
+
+      }
+     );
+
+
+    aiAnswer=
+     aiResponse.response
+     ||
+     aiResponse.result?.response
+     ||
+     "The AI did not return an answer.";
+
+
+   }
+   catch(error){
+
+    aiAnswer=
+     "AI Search error: "+
+     error.message;
 
    }
 
-   else return;
 
-   for(const s of this.ctx.getWebSockets())
+   const time=
+    new Date().toISOString();
+
+
+   /* SAVE QUERY + ANSWER */
+
+   this.ctx.storage.sql.exec(
+
+    "INSERT INTO messages(type,user,query,answer,created_at) VALUES(?,?,?,?,?)",
+
+    "query",
+
+    user,
+
+    query,
+
+    aiAnswer,
+
+    time
+
+   );
+
+
+   const output={
+
+    type:"query",
+
+    user:user,
+
+    query:query,
+
+    answer:aiAnswer,
+
+    sources:
+     results.map(x=>({
+
+      title:x.title,
+
+      url:x.url
+
+     })),
+
+    time:time
+
+   };
+
+
+   /* SHARE WITH EVERYONE */
+
+   for(
+    const socket
+    of this.ctx.getWebSockets()
+   ){
 
     try{
 
-     s.send(JSON.stringify(out));
+     socket.send(
+      JSON.stringify(output)
+     );
 
-    }catch{}
+    }
+    catch{}
 
-  }catch{}
+   }
+
+
+  }
+  catch(error){
+
+   try{
+
+    ws.send(
+     JSON.stringify({
+
+      type:"error",
+
+      message:
+       error.message||
+       "Query failed."
+
+     })
+    );
+
+   }
+   catch{}
+
+  }
 
  }
 
 }
 
+
 export default {
 
  async fetch(request,env){
 
-  const u=new URL(request.url);
+  const url=
+   new URL(request.url);
 
-  if(u.pathname==="/ws"){
+
+  if(url.pathname==="/ws"){
 
    const room=
-    u.searchParams.get("room")||"demo";
+    url.searchParams.get("room")
+    ||
+    "demo";
+
 
    return env.CHAT_ROOM.get(
     env.CHAT_ROOM.idFromName(room)
    ).fetch(request);
 
   }
+
 
   return new Response(
    HTML,
