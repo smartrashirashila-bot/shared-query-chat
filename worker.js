@@ -733,9 +733,9 @@ document.querySelector("#encryptSend").onclick=async()=>{
  const message=input.value.trim();
  if(!message)return;
  if(ws.readyState!==1){alert("Not connected. Please wait.");return;}
- const password=prompt("Enter a shared chat password. Everyone must use the same password to decrypt.");
+ const password=prompt("Enter a numeric PIN. Everyone must use the same PIN to decrypt (one digit is allowed).");
  if(password===null)return;
- if(password.length<8){alert("Use a password of at least 8 characters.");return;}
+ if(!/^\\d+$/.test(password)){alert("Use numbers only for the PIN.");return;}
  try{
   const encrypted=await encryptChatText(message,password);
   ws.send(JSON.stringify({type:"chat",user:name,message:encrypted}));
@@ -745,8 +745,9 @@ document.querySelector("#encryptSend").onclick=async()=>{
 document.querySelector("#decryptSelected").onclick=async()=>{
  if(!selectedChat){alert("Select an encrypted message first.");return;}
  if(!selectedChat.message.startsWith("ENC1:")){alert("This message is not encrypted.");return;}
- const password=prompt("Enter the shared chat password.");
+ const password=prompt("Enter the numeric PIN used to encrypt this message.");
  if(password===null)return;
+ if(!/^\\d+$/.test(password)){alert("Use numbers only for the PIN.");return;}
  try{
   const plain=await decryptChatText(selectedChat.message,password);
   chatPlaintext.set(selectedChat.card,plain);
