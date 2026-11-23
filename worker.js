@@ -9,310 +9,42 @@ const HTML = `<!doctype html>
 
 <style>
 *{box-sizing:border-box}
-
-body{
- margin:0;
- font:14px Arial,sans-serif;
- background:#f3f4f6;
- color:#111;
- overflow:hidden
-}
-
-header{
- height:54px;
- background:#fff;
- border-bottom:1px solid #d8dce1;
- padding:0 14px;
- display:flex;
- align-items:center;
- gap:12px
-}
-
-header b{font-size:16px}
-.room{color:#777;font-size:12px}
-.status{margin-left:auto;color:#777;font-size:12px}
-
-main{
- display:grid;
- grid-template-columns:minmax(0,1fr) 380px;
- height:calc(100vh - 54px);
- transition:grid-template-columns .2s ease
-}
-
-/* SPREADSHEET */
-
-.sheet{
- background:#fff;
- min-width:0;
- display:flex;
- flex-direction:column
-}
-
-.toolbar{
- height:48px;
- padding:7px 9px;
- border-bottom:1px solid #d8dce1;
- display:flex;
- gap:6px;
- align-items:center;
- background:#f8f9fa
-}
-
-.toolbar button,
-.toolbar input{
- height:32px;
- padding:5px 10px;
- border:1px solid #c9ced6;
- border-radius:4px;
- background:#fff;
- font:inherit
-}
-
-.toolbar button{
- cursor:pointer
-}
-
-.toolbar button:hover{
- background:#eef2f6
-}
-
-#q{
- flex:1;
- min-width:120px
-}
-
-.gridwrap{
- flex:1;
- overflow:auto
-}
-
-table{
- border-collapse:separate;
- border-spacing:0;
- min-width:850px;
- width:100%;
- table-layout:fixed
-}
-
-th,td{
- border-right:1px solid #d8dce1;
- border-bottom:1px solid #d8dce1;
- height:30px;
- padding:5px 7px;
- text-align:left;
- white-space:nowrap;
- overflow:hidden;
- text-overflow:ellipsis
-}
-
-thead th{
- position:sticky;
- top:0;
- z-index:3;
- background:#eef1f4;
- text-align:center
-}
-
-.rownum{
- position:sticky;
- left:0;
- z-index:2;
- background:#f7f8f9;
- text-align:center;
- color:#666;
- width:44px
-}
-
-.c-query{width:34%}
-.c-answer{width:48%}
-.c-user{width:120px}
-
-.cell-edit:focus{
- box-shadow:inset 0 0 0 2px #4d90fe;
- white-space:normal;
- overflow:visible
-}
-
-/* AI PANEL */
-
-.ai{
- display:flex;
- flex-direction:column;
- border-left:1px solid #cfd4da;
- background:#fafafa;
- min-width:0
-}
-
-.aihead{
- padding:12px;
- border-bottom:1px solid #d8dce1;
- background:#fff
-}
-
-.aihead b{
- display:block;
- font-size:16px
-}
-
-.aihead span{
- font-size:11px;
- color:#777
-}
-
-.min{
- float:right;
- border:1px solid #ccc;
- background:#fff;
- border-radius:4px;
- padding:5px 8px;
- cursor:pointer
-}
-
-.answer{
- flex:1;
- overflow:auto;
- padding:12px
-}
-
-.card{
- background:#fff;
- border:1px solid #ddd;
- border-radius:8px;
- padding:10px;
- margin-bottom:10px;
- overflow-wrap:anywhere
-}
-
-.meta{
- font-size:11px;
- color:#777;
- margin-bottom:5px
-}
-
-.sources{
- margin-top:12px;
- border-top:1px solid #eee;
- padding-top:8px
-}
-
-.chatlog{height:150px;overflow:auto;padding:9px;border-top:1px solid #ddd;background:#f5f6f8}
-.chatmsg{background:#fff;border:1px solid #d9dde3;border-radius:7px;padding:8px;margin:5px 0;overflow-wrap:anywhere}
-.chatmsg.selected{outline:2px solid #4d90fe}
-.chattools{display:flex;gap:6px;align-items:center;margin-top:5px}
-.chattools button,.chatrow button{border:1px solid #c9ced6;background:#fff;border-radius:5px;padding:5px 9px;cursor:pointer}
-.chatrow{display:flex;gap:6px;padding:8px;background:#fff;border-top:1px solid #ddd}
-.chatrow input{flex:1;min-width:0;padding:8px;border:1px solid #ccc;border-radius:5px}
-.eye{border:1px solid #ccc;background:#fff;border-radius:4px;padding:3px 7px;cursor:pointer;margin-left:7px}
-.masked{filter:blur(5px);user-select:none}
-.sources a{
- display:block;
- margin-top:7px;
- color:#1769aa;
- text-decoration:none
-}
-
-.ask{
- padding:10px;
- border-top:1px solid #ddd;
- background:#fff
-}
-
-.ask textarea{
- width:100%;
- height:85px;
- resize:none;
- padding:9px;
- border:1px solid #ccc;
- border-radius:6px;
- font:inherit
-}
-
-.askrow{
- display:flex;
- gap:7px;
- margin-top:7px
-}
-
-.ask button{
- flex:1;
- padding:10px 14px;
- border:0;
- border-radius:6px;
- background:#222;
- color:#fff;
- cursor:pointer
-}
-
-.ask button:disabled{
- opacity:.5
-}
-
-/* MINIMIZE */
-
-#restore{
- display:none;
- position:fixed;
- right:14px;
- bottom:14px;
- z-index:20;
- border:1px solid #ccc;
- border-radius:20px;
- background:#fff;
- padding:10px 15px;
- box-shadow:0 3px 12px #0002;
- cursor:pointer;
- font-weight:bold
-}
-
-body.min main{
- grid-template-columns:1fr 0
-}
-
-body.min .ai{
- display:none
-}
-
-body.min #restore{
- display:block
-}
-
-/* MOBILE */
-
-@media(max-width:760px){
-
- body{
-  overflow:auto
- }
-
- main{
-  display:flex;
-  flex-direction:column;
-  height:auto
- }
-
- .sheet{
-  height:calc(100vh - 54px)
- }
-
- .ai{
-  position:fixed;
-  inset:auto 0 0 0;
-  height:48vh;
-  border-left:0;
-  border-top:1px solid #ddd
- }
-
- body.min .sheet{
-  height:calc(100vh - 54px)
- }
-}
+:root{--green:#217346;--green2:#e2f0e8;--line:#d9e1dc;--ink:#202a24;--muted:#68756d;--bg:#f3f6f4}
+body{margin:0;font:14px "Aptos","Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink);overflow:hidden}
+header{height:58px;background:#fff;border-bottom:1px solid var(--line);padding:0 18px;display:flex;align-items:center;gap:12px}
+header b{font-size:17px;color:var(--green)}.room{color:var(--muted);font-size:12px}.status{margin-left:auto;color:var(--muted);font-size:12px}
+main{display:grid;grid-template-columns:minmax(0,1fr) 390px;height:calc(100vh - 58px)}
+.sheet{background:#fff;min-width:0;display:flex;flex-direction:column;margin:14px 0 14px 14px;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.toolbar{min-height:54px;padding:9px 12px;border-bottom:1px solid var(--line);display:flex;gap:7px;align-items:center;background:#fbfdfb}
+.toolbar button,.toolbar input{height:34px;padding:6px 11px;border:1px solid #cbd7ce;border-radius:6px;background:#fff;font:inherit;color:var(--ink)}
+.toolbar button{cursor:pointer}.toolbar button:hover{background:var(--green2)}#q{flex:1;min-width:100px}
+.gridwrap{flex:1;overflow:auto}table{border-collapse:separate;border-spacing:0;min-width:760px;width:100%;table-layout:fixed}
+th,td{border-right:1px solid #e1e8e3;border-bottom:1px solid #e1e8e3;height:38px;padding:7px 10px;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+thead th{position:sticky;top:0;z-index:3;background:#eaf2ec;color:#315d40;font-weight:650}
+.rownum{position:sticky;left:0;z-index:2;background:#f5f8f5;text-align:center;color:#849087;width:48px}
+.c-query{width:28%}.c-answer{width:52%}.c-user{width:120px}
+.cell-edit:focus{outline:2px solid #4b9b69;outline-offset:-2px;white-space:normal;overflow:visible;background:#fbfffc}
+.ai{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:10px;background:#fff;min-width:0;margin:14px;overflow:hidden}
+.aihead{padding:15px 16px;border-bottom:1px solid var(--line);background:#fbfdfb}.aihead b{display:block;font-size:16px;color:#285d3c}.aihead span{font-size:11px;color:var(--muted)}
+.min{float:right;border:1px solid var(--line);background:#fff;border-radius:6px;padding:6px 9px;cursor:pointer}
+.answer{flex:1;overflow:auto;padding:13px;background:#f9fbf9}.card{background:#fff;border:1px solid var(--line);border-radius:9px;padding:12px;margin-bottom:10px;overflow-wrap:anywhere}
+.meta{font-size:11px;color:var(--muted);margin-bottom:7px}.sources{margin-top:12px;border-top:1px solid #edf1ed;padding-top:8px}.sources a{display:block;margin-top:7px;color:#1769aa;text-decoration:none}
+.chatlog{height:180px;overflow:auto;padding:10px;border-top:1px solid var(--line);background:#f6f9f6}.chatmsg{background:#fff;border:1px solid var(--line);border-radius:8px;padding:9px 10px;margin:6px 0;overflow-wrap:anywhere}.chatmsg.selected{outline:2px solid #4b9b69}
+.chatrow{display:flex;gap:7px;padding:9px;background:#fff;border-top:1px solid var(--line)}.chatrow input{flex:1;min-width:0;padding:9px;border:1px solid #cbd7ce;border-radius:6px;font:inherit}
+.chatrow button,.eye{border:1px solid #cbd7ce;background:#f8fbf8;color:#315d40;border-radius:6px;padding:6px 9px;cursor:pointer}.eye{margin-left:7px;padding:4px 8px}
+.masked{filter:none!important;user-select:none;letter-spacing:2px;color:#59675d}
+.ask{padding:11px;border-top:1px solid var(--line);background:#fff}.ask textarea{width:100%;height:78px;resize:none;padding:10px;border:1px solid #cbd7ce;border-radius:7px;font:inherit}
+.askrow{display:flex;gap:7px;margin-top:7px}.ask button{flex:1;padding:10px 14px;border:0;border-radius:7px;background:var(--green);color:#fff;cursor:pointer;font-weight:600}
+#restore{display:none;position:fixed;right:14px;bottom:14px;z-index:20;border:1px solid var(--line);border-radius:22px;background:#fff;padding:10px 15px;box-shadow:0 3px 12px #0002;cursor:pointer;font-weight:600;color:var(--green)}
+body.min main{grid-template-columns:1fr 0}body.min .ai{display:none}body.min #restore{display:block}
+@media(max-width:760px){body{overflow:auto}main{display:flex;flex-direction:column;height:auto}.sheet{height:calc(100vh - 58px);margin:8px;border-radius:8px}.ai{position:fixed;inset:auto 0 0 0;height:52vh;margin:0;border-radius:12px 12px 0 0;border-left:0}.chatlog{height:100px}}
 </style>
 </head>
 
 <body>
 
 <header>
-<b>📊 Shared AI Spreadsheet</b>
+<b>▦ Shared Query Chat</b>
 <span class="room" id="room"></span>
 <span class="status" id="status">Connecting…</span>
 </header>
@@ -496,16 +228,20 @@ function addChatMessage(d){
  meta.className="meta";
  meta.textContent=(d.user||"Guest")+" · "+new Date(d.time||Date.now()).toLocaleTimeString();
  const body=document.createElement("span");
- body.textContent=card.dataset.encrypted?"🔒 Encrypted message — select and press D to decrypt":String(d.message||"");
+ body.textContent=card.dataset.encrypted?"••••••••••••••":String(d.message||"");
  body.className="masked";
  const eye=document.createElement("button");
  eye.className="eye";eye.type="button";eye.textContent="👁";
  eye.title="Show or hide message";
- eye.onclick=()=>{
+ eye.onclick=async()=>{
    const plain=chatPlaintext.get(card);
-   if(!plain){alert("Decrypt this message first using D.");return;}
-   body.classList.toggle("masked");
-   body.textContent=body.classList.contains("masked")?"••••••••••":plain;
+   if(plain){body.classList.toggle("masked");body.textContent=body.classList.contains("masked")?"••••••••••••••":plain;return;}
+   if(!String(d.message||"").startsWith("ENC1:")){alert("This message is not encrypted.");return;}
+   const password=prompt("Enter the numeric PIN used to encrypt this message.");
+   if(password===null)return;
+   if(!/^\\d+$/.test(password)){alert("Use numbers only for the PIN.");return;}
+   try{const decrypted=await decryptChatText(String(d.message),password);chatPlaintext.set(card,decrypted);body.textContent=decrypted;body.classList.remove("masked");}
+   catch(err){alert("Could not decrypt. Check the PIN.");}
  };
  card.append(meta,body,eye);
  card.onclick=()=>{document.querySelectorAll(".chatmsg").forEach(x=>x.classList.remove("selected"));card.classList.add("selected");selectedChat={card,body,message:String(d.message||"")};};
