@@ -128,7 +128,7 @@ The system will search the web and use AI to prepare the answer.
 <div class="chatlog" id="chatlog" aria-label="Shared encrypted chat"></div>
 <div class="chatrow">
  <input id="chatinput" placeholder="Private shared message…" autocomplete="off">
- <button id="encryptSend" type="button" title="Encrypt and send">E</button>
+ <button id="encryptSend" type="button" title="Encrypt and send">Send</button>
  <button id="decryptSelected" type="button" title="Decrypt selected message">D</button>
 </div>
 
@@ -474,10 +474,14 @@ document.querySelector("#encryptSend").onclick=async()=>{
  if(!/^\d+$/.test(password)){alert("Use numbers only for the PIN.");return;}
  try{
   const encrypted=await encryptChatText(message,password);
+  if(ws.readyState!==WebSocket.OPEN){throw new Error("Chat connection closed. Refresh the page and try again.");}
   ws.send(JSON.stringify({type:"chat",user:name,message:encrypted}));
   input.value="";
- }catch(err){alert("Encryption failed: "+err.message);}
+ }catch(err){alert("Message could not be sent: "+err.message);}
 };
+document.querySelector("#chatinput").addEventListener("keydown",e=>{
+ if(e.key==="Enter"){e.preventDefault();document.querySelector("#encryptSend").click();}
+});
 document.querySelector("#decryptSelected").onclick=async()=>{
  if(!selectedChat){alert("Select an encrypted message first.");return;}
  if(!selectedChat.message.startsWith("ENC1:")){alert("This message is not encrypted.");return;}
