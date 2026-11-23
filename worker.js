@@ -239,7 +239,7 @@ function addChatMessage(d){
    if(!String(d.message||"").startsWith("ENC1:")){alert("This message is not encrypted.");return;}
    const password=prompt("Enter the numeric PIN used to encrypt this message.");
    if(password===null)return;
-   if(!/^\\d+$/.test(password)){alert("Use numbers only for the PIN.");return;}
+   if(!/^\d+$/.test(password)){alert("Use numbers only for the PIN.");return;}
    try{const decrypted=await decryptChatText(String(d.message),password);chatPlaintext.set(card,decrypted);body.textContent=decrypted;body.classList.remove("masked");}
    catch(err){alert("Could not decrypt. Check the PIN.");}
  };
