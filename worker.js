@@ -195,6 +195,15 @@ thead th{
  padding-top:8px
 }
 
+.chatlog{height:150px;overflow:auto;padding:9px;border-top:1px solid #ddd;background:#f5f6f8}
+.chatmsg{background:#fff;border:1px solid #d9dde3;border-radius:7px;padding:8px;margin:5px 0;overflow-wrap:anywhere}
+.chatmsg.selected{outline:2px solid #4d90fe}
+.chattools{display:flex;gap:6px;align-items:center;margin-top:5px}
+.chattools button,.chatrow button{border:1px solid #c9ced6;background:#fff;border-radius:5px;padding:5px 9px;cursor:pointer}
+.chatrow{display:flex;gap:6px;padding:8px;background:#fff;border-top:1px solid #ddd}
+.chatrow input{flex:1;min-width:0;padding:8px;border:1px solid #ccc;border-radius:5px}
+.eye{border:1px solid #ccc;background:#fff;border-radius:4px;padding:3px 7px;cursor:pointer;margin-left:7px}
+.masked{filter:blur(5px);user-select:none}
 .sources a{
  display:block;
  margin-top:7px;
@@ -384,6 +393,12 @@ The system will search the web and use AI to prepare the answer.
 
 </div>
 
+<div class="chatlog" id="chatlog" aria-label="Shared encrypted chat"></div>
+<div class="chatrow">
+ <input id="chatinput" placeholder="Private shared message…" autocomplete="off">
+ <button id="encryptSend" type="button" title="Encrypt and send">E</button>
+ <button id="decryptSelected" type="button" title="Decrypt selected message">D</button>
+</div>
 
 <form class="ask" id="form">
 
@@ -415,11 +430,11 @@ The system will search the web and use AI to prepare the answer.
 <script>
 
 const p=new URLSearchParams(location.search);
-
-const room=p.get("room")||"demo";
-
-document.querySelector("#room").textContent=
-"Room: "+room;
+const roomFromLink=p.get("room");
+const room=roomFromLink || sessionStorage.getItem("shared-chat-room") || "demo";
+if(roomFromLink) sessionStorage.setItem("shared-chat-room",roomFromLink);
+if(p.has("room")) history.replaceState({},document.title,location.pathname);
+document.querySelector("#room").textContent="Room: "+room;
 
 
 const name=(prompt("Your name?")||"Guest").slice(0,40);
@@ -442,8 +457,60 @@ const answer=document.querySelector("#answer");
 const status=document.querySelector("#status");
 
 const askButton=document.querySelector("#ask");
-
+const chatlog=document.querySelector("#chatlog");
+let selectedChat=null;
+const chatPlaintext=new WeakMap();
 let rowNumber=0;
+
+function bytesToB64(bytes){
+ let binary="";
+ new Uint8Array(bytes).forEach(b=>binary+=String.fromCharCode(b));
+ return btoa(binary);
+}
+function b64ToBytes(value){
+ const binary=atob(value);
+ return Uint8Array.from(binary,c=>c.charCodeAt(0));
+}
+async function deriveChatKey(password,salt){
+ const material=await crypto.subtle.importKey("raw",new TextEncoder().encode(password),"PBKDF2",false,["deriveKey"]);
+ return crypto.subtle.deriveKey({name:"PBKDF2",salt,iterations:250000,hash:"SHA-256"},material,{name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+}
+async function encryptChatText(plain,password){
+ const salt=crypto.getRandomValues(new Uint8Array(16));
+ const iv=crypto.getRandomValues(new Uint8Array(12));
+ const key=await deriveChatKey(password,salt);
+ const encrypted=await crypto.subtle.encrypt({name:"AES-GCM",iv},key,new TextEncoder().encode(plain));
+ return "ENC1:"+JSON.stringify({s:bytesToB64(salt),i:bytesToB64(iv),c:bytesToB64(encrypted)});
+}
+async function decryptChatText(payload,password){
+ const data=JSON.parse(payload.slice(5));
+ const key=await deriveChatKey(password,b64ToBytes(data.s));
+ const plain=await crypto.subtle.decrypt({name:"AES-GCM",iv:b64ToBytes(data.i)},key,b64ToBytes(data.c));
+ return new TextDecoder().decode(plain);
+}
+function addChatMessage(d){
+ const card=document.createElement("div");
+ card.className="chatmsg";
+ card.dataset.encrypted=String(String(d.message||"").startsWith("ENC1:"));
+ const meta=document.createElement("div");
+ meta.className="meta";
+ meta.textContent=(d.user||"Guest")+" · "+new Date(d.time||Date.now()).toLocaleTimeString();
+ const body=document.createElement("span");
+ body.textContent=card.dataset.encrypted?"🔒 Encrypted message — select and press D to decrypt":String(d.message||"");
+ body.className="masked";
+ const eye=document.createElement("button");
+ eye.className="eye";eye.type="button";eye.textContent="👁";
+ eye.title="Show or hide message";
+ eye.onclick=()=>{
+   const plain=chatPlaintext.get(card);
+   if(!plain){alert("Decrypt this message first using D.");return;}
+   body.classList.toggle("masked");
+   body.textContent=body.classList.contains("masked")?"••••••••••":plain;
+ };
+ card.append(meta,body,eye);
+ card.onclick=()=>{document.querySelectorAll(".chatmsg").forEach(x=>x.classList.remove("selected"));card.classList.add("selected");selectedChat={card,body,message:String(d.message||"")};};
+ chatlog.append(card);chatlog.scrollTop=chatlog.scrollHeight;
+}
 
 
 /* ADD SPREADSHEET ROW */
@@ -527,15 +594,18 @@ function showAnswer(d){
 
 
  const text=document.createElement("p");
-
- text.textContent=d.answer;
-
-
- card.append(
-  meta,
-  question,
-  text
- );
+ text.textContent="••••••••••";
+ text.className="masked";
+ let answerVisible=false;
+ const eye=document.createElement("button");
+ eye.className="eye";eye.type="button";eye.textContent="👁";
+ eye.title="Show or hide AI answer";
+ eye.onclick=()=>{
+  answerVisible=!answerVisible;
+  text.textContent=answerVisible?d.answer:"••••••••••";
+  text.classList.toggle("masked",!answerVisible);
+ };
+ card.append(meta,question,text,eye);
 
 
  if(d.sources && d.sources.length){
@@ -620,14 +690,9 @@ ws.onmessage=e=>{
   d.messages.forEach(x=>{
 
    if(x.type==="query"){
-
-    addRow(
-     x.query,
-     x.answer,
-     x.user
-    );
-
+    addRow(x.query,x.answer,x.user);
    }
+   if(x.type==="chat") addChatMessage(x);
 
   });
 
@@ -635,18 +700,11 @@ ws.onmessage=e=>{
 
 
  if(d.type==="query"){
-
-  addRow(
-   d.query,
-   d.answer,
-   d.user
-  );
-
+  addRow(d.query,d.answer,d.user);
   showAnswer(d);
-
   askButton.disabled=false;
-
  }
+ if(d.type==="chat") addChatMessage(d);
 
 
  if(d.type==="error"){
@@ -668,6 +726,34 @@ ws.onmessage=e=>{
 
 };
 
+
+/* ENCRYPTED SHARED CHAT */
+document.querySelector("#encryptSend").onclick=async()=>{
+ const input=document.querySelector("#chatinput");
+ const message=input.value.trim();
+ if(!message)return;
+ if(ws.readyState!==1){alert("Not connected. Please wait.");return;}
+ const password=prompt("Enter a shared chat password. Everyone must use the same password to decrypt.");
+ if(password===null)return;
+ if(password.length<8){alert("Use a password of at least 8 characters.");return;}
+ try{
+  const encrypted=await encryptChatText(message,password);
+  ws.send(JSON.stringify({type:"chat",user:name,message:encrypted}));
+  input.value="";
+ }catch(err){alert("Encryption failed: "+err.message);}
+};
+document.querySelector("#decryptSelected").onclick=async()=>{
+ if(!selectedChat){alert("Select an encrypted message first.");return;}
+ if(!selectedChat.message.startsWith("ENC1:")){alert("This message is not encrypted.");return;}
+ const password=prompt("Enter the shared chat password.");
+ if(password===null)return;
+ try{
+  const plain=await decryptChatText(selectedChat.message,password);
+  chatPlaintext.set(selectedChat.card,plain);
+  selectedChat.body.textContent=plain;
+  selectedChat.body.classList.remove("masked");
+ }catch(err){alert("Could not decrypt. Check the password or message.");}
+};
 
 /* ASK AI */
 
@@ -874,23 +960,22 @@ export class ChatRoom extends DurableObject {
      d.user||"Guest"
     ).slice(0,40);
 
-   const query=
-    String(
-     d.query||""
-    )
-    .trim()
-    .slice(0,2000);
+   const query=String(d.query||"").trim().slice(0,2000);
 
-
-   if(
-    d.type!=="query"
-    ||
-    !query
-   ){
-
+   if(d.type==="chat"){
+    const message=String(d.message||"").slice(0,12000);
+    if(!message)return;
+    const time=new Date().toISOString();
+    this.ctx.storage.sql.exec(
+     "INSERT INTO messages(type,user,message,created_at) VALUES(?,?,?,?)",
+     "chat",user,message,time
+    );
+    const output={type:"chat",user,message,time};
+    for(const socket of this.ctx.getWebSockets()){try{socket.send(JSON.stringify(output));}catch{}}
     return;
-
    }
+
+   if(d.type!=="query" || !query) return;
 
 
    let results=[];
