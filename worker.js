@@ -128,6 +128,7 @@ The system will search the web and use AI to prepare the answer.
 <div class="chatlog" id="chatlog" aria-label="Shared encrypted chat"></div>
 <div class="chatrow">
  <input id="chatinput" placeholder="Private shared message…" autocomplete="off">
+ <input id="chatpin" type="password" inputmode="numeric" pattern="[0-9]*" placeholder="PIN" aria-label="Shared encryption PIN" style="width:76px;min-width:76px;padding:9px;border:1px solid #cbd7ce;border-radius:6px">
  <button id="encryptSend" type="button" title="E: encrypt and send">E</button>
  <button id="decryptSelected" type="button" title="Decrypt selected message">D</button>
 </div>
