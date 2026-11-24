@@ -128,7 +128,7 @@ The system will search the web and use AI to prepare the answer.
 <div class="chatlog" id="chatlog" aria-label="Shared encrypted chat"></div>
 <div class="chatrow">
  <input id="chatinput" placeholder="Private shared message…" autocomplete="off">
- <button id="encryptSend" type="button" title="Encrypt and send">Send</button>
+ <button id="encryptSend" type="button" title="E: encrypt and send">E</button>
  <button id="decryptSelected" type="button" title="Decrypt selected message">D</button>
 </div>
 
@@ -237,9 +237,9 @@ function addChatMessage(d){
    const plain=chatPlaintext.get(card);
    if(plain){body.classList.toggle("masked");body.textContent=body.classList.contains("masked")?"••••••••••••••":plain;return;}
    if(!String(d.message||"").startsWith("ENC1:")){alert("This message is not encrypted.");return;}
-   const password=prompt("Enter the numeric PIN used to encrypt this message.");
+   const password=prompt("Enter the password used to encrypt this message.");
    if(password===null)return;
-   if(!/^\d+$/.test(password)){alert("Use numbers only for the PIN.");return;}
+   if(!password.trim()){alert("Password cannot be empty.");return;}
    try{const decrypted=await decryptChatText(String(d.message),password);chatPlaintext.set(card,decrypted);body.textContent=decrypted;body.classList.remove("masked");}
    catch(err){alert("Could not decrypt. Check the PIN.");}
  };
@@ -469,7 +469,7 @@ document.querySelector("#encryptSend").onclick=async()=>{
  const message=input.value.trim();
  if(!message)return;
  if(ws.readyState!==1){alert("Not connected. Please wait.");return;}
- const password=prompt("Enter a numeric PIN. Everyone must use the same PIN to decrypt (one digit is allowed).");
+ const password=prompt("Enter an encryption password. Everyone must use the same password to decrypt.");
  if(password===null)return;
  if(!/^\d+$/.test(password)){alert("Use numbers only for the PIN.");return;}
  try{
