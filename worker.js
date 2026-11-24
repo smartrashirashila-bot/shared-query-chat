@@ -394,18 +394,21 @@ function showAnswer(d){
 ws.onopen=()=>{
 
  status.textContent="● Connected";
+ document.querySelector("#encryptSend").disabled=false;
 
 };
 
 ws.onclose=()=>{
 
  status.textContent="Disconnected";
+ document.querySelector("#encryptSend").disabled=true;
 
 };
 
 ws.onerror=()=>{
 
  status.textContent="Connection error";
+ document.querySelector("#encryptSend").disabled=true;
 
 };
 
@@ -465,38 +468,41 @@ ws.onmessage=e=>{
 
 
 /* ENCRYPTED SHARED CHAT */
-document.querySelector("#encryptSend").onclick=async()=>{
+const chatPinInput=document.querySelector("#chatpin");
+const sendChatButton=document.querySelector("#encryptSend");
+const decryptChatButton=document.querySelector("#decryptSelected");
+sendChatButton.onclick=async()=>{
  const input=document.querySelector("#chatinput");
  const message=input.value.trim();
- if(!message)return;
- if(ws.readyState!==1){alert("Not connected. Please wait.");return;}
- const password=prompt("Enter an encryption password. Everyone must use the same password to decrypt.");
- if(password===null)return;
- if(!/^\d+$/.test(password)){alert("Use numbers only for the PIN.");return;}
+ const pin=chatPinInput.value.trim();
+ if(!message){alert("Type a message first.");input.focus();return;}
+ if(!/^\\d{4,12}$/.test(pin)){alert("Enter a 4–12 digit PIN in the PIN box.");chatPinInput.focus();return;}
+ if(ws.readyState!==WebSocket.OPEN){alert("Chat is not connected ("+["CONNECTING","OPEN","CLOSING","CLOSED"][ws.readyState]+"). Refresh the page and wait for Connected.");return;}
+ sendChatButton.disabled=true;
  try{
-  const encrypted=await encryptChatText(message,password);
-  if(ws.readyState!==WebSocket.OPEN){throw new Error("Chat connection closed. Refresh the page and try again.");}
+  const encrypted=await encryptChatText(message,pin);
+  if(ws.readyState!==WebSocket.OPEN) throw new Error("Connection closed while encrypting. Please try again.");
   ws.send(JSON.stringify({type:"chat",user:name,message:encrypted}));
   input.value="";
- }catch(err){alert("Message could not be sent: "+err.message);}
+  status.textContent="● Sent";
+ }catch(err){alert("Send failed: "+err.message);}
+ finally{sendChatButton.disabled=false;}
 };
 document.querySelector("#chatinput").addEventListener("keydown",e=>{
- if(e.key==="Enter"){e.preventDefault();document.querySelector("#encryptSend").click();}
+ if(e.key==="Enter"){e.preventDefault();sendChatButton.click();}
 });
-document.querySelector("#decryptSelected").onclick=async()=>{
- if(!selectedChat){alert("Select an encrypted message first.");return;}
+decryptChatButton.onclick=async()=>{
+ if(!selectedChat){alert("Tap the message you want to decrypt first.");return;}
  if(!selectedChat.message.startsWith("ENC1:")){alert("This message is not encrypted.");return;}
- const password=prompt("Enter the numeric PIN used to encrypt this message.");
- if(password===null)return;
- if(!/^\d+$/.test(password)){alert("Use numbers only for the PIN.");return;}
+ const pin=chatPinInput.value.trim();
+ if(!/^\\d{4,12}$/.test(pin)){alert("Enter the same 4–12 digit PIN in the PIN box.");chatPinInput.focus();return;}
  try{
-  const plain=await decryptChatText(selectedChat.message,password);
+  const plain=await decryptChatText(selectedChat.message,pin);
   chatPlaintext.set(selectedChat.card,plain);
   selectedChat.body.textContent=plain;
   selectedChat.body.classList.remove("masked");
- }catch(err){alert("Could not decrypt. Check the password or message.");}
+ }catch(err){alert("Decryption failed. Check that the PIN matches the sender's PIN.");}
 };
-
 /* ASK AI */
 
 function askQuery(query){
